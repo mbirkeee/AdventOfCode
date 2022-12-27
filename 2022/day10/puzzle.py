@@ -1,4 +1,3 @@
-
 class CPU(object):
 
     def __init__(self):
@@ -7,7 +6,6 @@ class CPU(object):
         self._register_x = 1
 
     def add_instruction(self, instruction):
-        # print("add instruction: %s" % instruction)
         self._queue.append(instruction)
 
     def tick(self):

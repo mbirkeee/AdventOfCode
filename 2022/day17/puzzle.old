@@ -1,0 +1,110 @@
+import time
+
+class ExceptionDone(Exception):
+    pass
+
+MAX_ROCKS  = 1000000000000
+ROCK_TYPES = [0,1,2,3,4]
+
+WIDTH = 7
+
+LEFT = '<'
+RIGHT = '>'
+
+ROCKS = {
+    0: [ [ [0,0], [1,0], [2,0], [3,0]],             1, 4],
+    1: [ [ [1,0], [0, 1], [1,1], [2,1], [1,2]],     3, 3],
+    2: [ [ [2,0], [2, 1], [0,2], [1,2], [2, 2]],    3, 3],
+    3: [ [ [0,0], [0,1], [0,2], [0,3]],             4, 1],
+    4: [ [ [0,0], [0,1], [1,0], [1,1]],             2, 2]
+}
+
+
+class Runner(object):
+
+    def __init__(self):
+        # self._file_name = 'input_test.txt'
+        # self._file_name = 'input_test2.txt'
+        self._file_name = 'input_real.txt'
+
+        self._rock_count = 0
+        self._jet_index = 0
+        self._rock_index = 0
+        self._fallen_rocks = []
+        self._jet = None
+
+    def run(self):
+
+        fp = open(self._file_name, 'r')
+        lines = []
+        for line in fp:
+            line = line.strip()
+            lines.append(line)
+
+        fp.close()
+
+        if len(lines) != 1:
+            raise ValueError("lines != 1")
+
+        # Get the list of jet directions
+        self._jet = [ c for c in lines[0]]
+        # print(jet)
+
+        # for rock_type in ROCK_TYPES:
+        #     print("-------------------")
+        #     rock = Rock(rock_type)
+        #     rock.print_shape()
+        #     print("-------------------")
+
+        update_count = 1000000
+        temp = MAX_ROCKS / update_count
+        print("temp: %d" % temp)
+
+        counter = 0
+
+        t = time.time()
+
+        while True:
+
+            rock = self.get_next_rock()
+
+            while True:
+                jet = self.get_next_jet()
+                break
+
+            self._rock_count +=1
+            counter += 1
+
+            if counter >= update_count:
+                n = time.time()
+                elapsed = n - t
+                t = n
+                print("Rocks: %d (elapsed: %f)" % (self._rock_count, elapsed))
+                counter = 0
+
+            if counter == MAX_ROCKS:
+                break
+
+
+    def get_next_rock(self):
+
+        rock = ROCKS[self._rock_index]
+
+        self._rock_index += 1
+        if self._rock_index == len(ROCK_TYPES):
+            self._rock_index = 0
+
+        return rock
+
+    def get_next_jet(self):
+        jet = self._jet[self._jet_index]
+
+        self._jet_index += 1
+        if self._jet_index == len(self._jet):
+            self._jet_index = 0
+
+        return jet
+
+if __name__ == '__main__':
+    runner = Runner()
+    runner.run()
