@@ -64,9 +64,9 @@ class ValveOrder(object):
 class Runner(object):
 
     def __init__(self):
-        # self._file_name = 'input_test.txt'
+        self._file_name = 'input_test.txt'
         # self._file_name = 'input_test2.txt'
-        self._file_name = 'input_real.txt'
+        # self._file_name = 'input_real.txt'
         self._valves = {}
         self._tree = {}
         self._node_count = 0

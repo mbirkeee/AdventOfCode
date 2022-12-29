@@ -82,7 +82,7 @@ class Runner(object):
         self._expect_parts = None
         self._blueprints = {}
 
-        self._max_minutes = 32
+        self._max_minutes = 24
         self._choices = MyIterator(length=self._max_minutes)
 
     def run(self):

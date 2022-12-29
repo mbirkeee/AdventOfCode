@@ -110,6 +110,7 @@ class Runner(object):
             geodes = self.go(value)
             total_score += (item * geodes)
             print("total_score: %d" % total_score)
+            reak
 
         print("done")
 
@@ -119,21 +120,32 @@ class Runner(object):
         robots_ordered = [0, 0, 0, 0, 1, 0, 0, 0]
         new_robot_index = None
 
-        max_ore_robots = max(blueprint[0], blueprint[1], blueprint[2][0], blueprint[3][0])
+        max_ore_robots = max(blueprint[1], blueprint[2][0], blueprint[3][0])
         max_clay_robots = blueprint[2][1]
         max_obsidian_robots = blueprint[3][1]
+
         print("Max robots: ORE: %d CLAY: %d OBSIDIAN: %d" % \
               (max_ore_robots, max_clay_robots, max_obsidian_robots ))
 
-        for minute in range(1, self._max_minutes + 1):
+        minute = 0
+        while True:
+
             # Each robot produces one item
             state[ORE]      += state[ROBOT_ORE]
             state[CLAY]     += state[ROBOT_CLAY]
             state[OBSIDIAN] += state[ROBOT_OBSIDIAN]
             state[GEODE]    += state[ROBOT_GEODE]
 
+            minute += 1
+            if minute > self._max_minutes: break
+
+            print("Minute: %d -------ORE: %d CLAY: %d OBSIDIAN: %d GEODE: %d" %
+                  (minute, state[ORE], state[CLAY], state[OBSIDIAN], state[GEODE]))
+
             if new_robot_index is not None:
                 state[new_robot_index] += 1
+                print("   new robot %d ready... now have %d" %
+                      ((new_robot_index), state[new_robot_index]))
                 new_robot_index = None
 
             # Can I afford a geode robot?
@@ -142,25 +154,28 @@ class Runner(object):
                     state[ORE] -= blueprint[3][0]
                     state[OBSIDIAN] -= blueprint[3][1]
                     new_robot_index = ROBOT_GEODE
-                    print("bought an GEODE robot")
+                    print("    bought an GEODE robot")
                     continue
 
             if robots_ordered[ROBOT_OBSIDIAN] < max_obsidian_robots:
-                if state[ORE] >= blueprint[2][0]:
-                    if state[CLAY] >= blueprint[2][1]:
-                        state[ORE] -= blueprint[2][0]
-                        state[CLAY] -= blueprint[2][1]
-                        robots_ordered[ROBOT_OBSIDIAN] += 1
-                        new_robot_index = ROBOT_OBSIDIAN
-                        print("bought an OBSIDIAN robot")
-                        continue
+                if state[CLAY] >= blueprint[2][1]:
+                    if state[ORE] >= blueprint[2][0]:
+                            state[ORE] -= blueprint[2][0]
+                            state[CLAY] -= blueprint[2][1]
+                            robots_ordered[ROBOT_OBSIDIAN] += 1
+                            new_robot_index = ROBOT_OBSIDIAN
+                            print("    bought an OBSIDIAN robot")
+                            continue
+                    # I have enough clay, but not enough ore...
+                    # wait a rouind to get more ore
+                    continue
 
             if robots_ordered[ROBOT_CLAY] < max_clay_robots:
                 if state[ORE] >= blueprint[1]:
                     state[ORE] -= blueprint[1]
                     new_robot_index = ROBOT_CLAY
                     robots_ordered[ROBOT_CLAY] += 1
-                    print("bought a CLAY robot")
+                    print("    bought a CLAY robot")
                     continue
 
             if robots_ordered[ROBOT_ORE] < max_ore_robots:
@@ -168,7 +183,7 @@ class Runner(object):
                     state[ORE] -= blueprint[0]
                     new_robot_index = ROBOT_ORE
                     robots_ordered[ROBOT_ORE] += 1
-                    print("bought an ORE robot")
+                    print("    bought an ORE robot")
                     continue
 
 

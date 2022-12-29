@@ -1,5 +1,3 @@
-import numpy as np
-import time
 
 class ExceptionDone(Exception):
     pass
@@ -179,31 +177,31 @@ class Node(object):
         for name in self._next:
             yield name
 
-    def get_parent_list_old(self):
-
-        parent = self._parent
-        name = self._name
-
-        parent_list = []
-        visit_count = 0
-        open_count = 0
-        while True:
-            if parent is None:
-                break
-
-            if parent.get_name() == name:
-                parent
-                visit_count += 1
-
-            open_count += parent.get_opened()
-
-            parent_list.append(parent)
-            parent = parent.get_parent()
-
-        parent_list.reverse()
-        parent_list.append(self)
-        parent_list = parent_list
-        return parent_list, visit_count, open_count
+    # def get_parent_list_old(self):
+    #
+    #     parent = self._parent
+    #     name = self._name
+    #
+    #     parent_list = []
+    #     visit_count = 0
+    #     open_count = 0
+    #     while True:
+    #         if parent is None:
+    #             break
+    #
+    #         if parent.get_name() == name:
+    #             parent
+    #             visit_count += 1
+    #
+    #         open_count += parent.get_opened()
+    #
+    #         parent_list.append(parent)
+    #         parent = parent.get_parent()
+    #
+    #     parent_list.reverse()
+    #     parent_list.append(self)
+    #     parent_list = parent_list
+    #     return parent_list, visit_count, open_count
 
     def get_opened(self):
         return self._opened
