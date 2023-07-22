@@ -47,7 +47,7 @@ class Node(object):
                 self._p1_score += self._p1_pos
 
                 if self._p1_score >= 21:
-                    print("P1 wins! universes: %d" % self._universes)
+                    # print("P1 wins! universes: %d" % self._universes)
                     p1_wins += self._universes
                     return
                 self._check = 2
@@ -62,7 +62,7 @@ class Node(object):
                 self._p2_score += self._p2_pos
 
                 if self._p2_score >= 21:
-                    print("P2 wins! universes: %d" % self._universes)
+                    # print("P2 wins! universes: %d" % self._universes)
                     p2_wins += self._universes
 
                     return
