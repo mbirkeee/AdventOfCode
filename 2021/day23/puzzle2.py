@@ -21,6 +21,7 @@ class KEY(object):
 
     COST   = 's'
     MAP    = 'a'
+    HIST   = 'hist'
 
 KIND = { A:'A', B:'B', C:'C', D:'D'}
 
@@ -30,6 +31,7 @@ ALLOWABLE_HALL_SPOTS_LEFT = [7, 5, 3, 1, 0]
 COST = {A: 1, B:10, C:100, D:1000}
 
 SYSTEM = {
+    KEY.HIST: [],
     KEY.COST: 0,
     KEY.MAP : {
         0   : { KEY.KIND: B, KEY.COL : A, KEY.ROW : 0, KEY.HALL : None, KEY.MOVE : 0},
@@ -52,6 +54,7 @@ SYSTEM = {
 }
 
 SYSTEM_EXAMPLE = {
+    KEY.HIST: [],
     KEY.COST: 0,
     KEY.MAP : {
         0   : { KEY.KIND: B, KEY.COL : A, KEY.ROW : 0, KEY.HALL : None, KEY.MOVE : 0},
@@ -73,27 +76,6 @@ SYSTEM_EXAMPLE = {
     }
 }
 
-SYSTEM_TEST = {
-    KEY.COST: 0,
-    KEY.MAP : {
-        8   : { KEY.KIND: B, KEY.COL : None, KEY.ROW : None, KEY.HALL : 0,    KEY.MOVE : 0},
-        0   : { KEY.KIND: D, KEY.COL : A, KEY.ROW : 1, KEY.HALL : None, KEY.MOVE : 0},
-        1   : { KEY.KIND: D, KEY.COL : A, KEY.ROW : 2, KEY.HALL : None, KEY.MOVE : 0},
-        9   : { KEY.KIND: B, KEY.COL : A, KEY.ROW : 3, KEY.HALL : None, KEY.MOVE : 0},
-        4   : { KEY.KIND: C, KEY.COL : B, KEY.ROW : 0, KEY.HALL : None, KEY.MOVE : 0},
-        5   : { KEY.KIND: C, KEY.COL : B, KEY.ROW : 1, KEY.HALL : None, KEY.MOVE : 0},
-        10  : { KEY.KIND: B, KEY.COL : B, KEY.ROW : 2, KEY.HALL : None, KEY.MOVE : 0},
-        6   : { KEY.KIND: C, KEY.COL : B, KEY.ROW : 3, KEY.HALL : None, KEY.MOVE : 0},
-        12  : { KEY.KIND: A, KEY.COL : C, KEY.ROW : 0, KEY.HALL : None, KEY.MOVE : 0},
-        11  : { KEY.KIND: B, KEY.COL : C, KEY.ROW : 1, KEY.HALL : None, KEY.MOVE : 0},
-        13  : { KEY.KIND: A, KEY.COL : C, KEY.ROW : 2, KEY.HALL : None, KEY.MOVE : 0},
-        2   : { KEY.KIND: D, KEY.COL : C, KEY.ROW : 3, KEY.HALL : None, KEY.MOVE : 0},
-        3   : { KEY.KIND: D, KEY.COL : D, KEY.ROW : 0, KEY.HALL : None, KEY.MOVE : 0},
-        14  : { KEY.KIND: A, KEY.COL : D, KEY.ROW : 1, KEY.HALL : None, KEY.MOVE : 0},
-        7   : { KEY.KIND: C, KEY.COL : D, KEY.ROW : 2, KEY.HALL : None, KEY.MOVE : 0},
-        15  : { KEY.KIND: A, KEY.COL : D, KEY.ROW : 3, KEY.HALL : None, KEY.MOVE : 0},
-    }
-}
 
 
 class Runner(object):
@@ -107,11 +89,15 @@ class Runner(object):
         self._min_cost = 999999999
         self._abort_count = 0
         self._finished_count = 0
+        self._cache = {}
+        self._cache_hit_count = 0
 
     def run(self):
 
-        self.print(SYSTEM_EXAMPLE)
-        self.process(SYSTEM_EXAMPLE)
+        self.print(SYSTEM)
+        key = self.get_key(SYSTEM[KEY.MAP])
+        print(key)
+        self.process(SYSTEM)
 
         print("done; total: %d min cost: %d" % (self._total_count, self._min_cost))
 
@@ -127,10 +113,31 @@ class Runner(object):
 
     def process(self, system):
 
-        if system[KEY.COST] > self._min_cost:
+        # input("continue...")
+        cost = system[KEY.COST]
+        map = system[KEY.MAP]
+
+        if cost > self._min_cost:
             # print("abort branch!!")
             self._abort_count += 1
             return
+
+        # self.print(system)
+        key = self.get_key(map)
+        # print("key: %s cost: %d" % (key, cost))
+
+        have_cost = self._cache.get(key)
+        if have_cost is not None:
+            if cost < have_cost:
+                self._cache[key] = cost
+            else:
+                # print("cache hit!!! can abort!!")
+                self._cache_hit_count += 1
+                return
+        else:
+            self._cache[key] = cost
+
+
 
         print_flag = False
         self._count += 1
@@ -149,15 +156,14 @@ class Runner(object):
                     self._min_cost = cost
 
                 # No need to look for subsequent branches
-                return
+                # return
 
-                # print_flag = True
+                print_flag = True
 
         if print_flag:
             self.print(system)
 
         # Here, I must iterate over the all the playes and queue every possible move
-        map = system[KEY.MAP]
 
         for i, v in map.items():
             move_list = self.get_move_list(map, i, v)
@@ -186,12 +192,16 @@ class Runner(object):
 
     def move_to_tunnel(self, system, i, row, col):
 
+
         map = system[KEY.MAP]
         v = map[i]
 
         # Lets call hallway row -1
-        cost =  COST[v[KEY.KIND]] * (abs(v[KEY.HALL] - col) + abs(-1 - row)) 
+        cost =  COST[v[KEY.KIND]] * (abs(v[KEY.HALL] - col) + abs(-1 - row))
         system[KEY.COST] = system[KEY.COST] + cost
+
+        history = system[KEY.HIST]
+        history.append( '(%d -> %d %d (%d))' % (v[KEY.HALL], row, col, cost))
 
         v[KEY.HALL] = None
         v[KEY.ROW] = row
@@ -207,6 +217,9 @@ class Runner(object):
         # Lets call hallway row -1
         cost =  COST[v[KEY.KIND]] * (abs(move - v[KEY.COL]) + abs(-1 - v[KEY.ROW]))
         system[KEY.COST] = system[KEY.COST] + cost
+
+        history = system[KEY.HIST]
+        history.append( '(%d %d -> %d (%d))' % (v[KEY.ROW], v[KEY.COL], move, cost))
 
         v[KEY.HALL] = move
         v[KEY.ROW] = None
@@ -269,7 +282,7 @@ class Runner(object):
         target_hall_spot = v[KEY.KIND] # My kind corresponds to the target column (tunnel)
 
         for spot in self.my_range(current_hall_spot, target_hall_spot):
-            if self.get_in_hall(map, spot):
+            if self.get_in_hall(map, spot) is not None:
                 # log.dbg(0, "I am blocked in the hall")
                 return
 
@@ -353,16 +366,48 @@ class Runner(object):
 
         print(row_str)
 
+
     def print(self, system):
 
         map = system[KEY.MAP]
         cost = system[KEY.COST]
         self.print_map(map, cost)
 
+        history = system[KEY.HIST]
+        for item in history:
+            print(item)
+
+    def get_key_row(self, map, row):
+        key = ''
+        for col in [A, B, C, D]:
+            i = self.get_at_spot(map, row, col)
+            if i is None:
+                key += '.'
+            else:
+                key += '%s' % self.get_kind_str(map, i)
+
+        return key
+
+    def get_key(self, map):
+
+        key_string = ''
+        for hall_index in range(0, 11):
+            i = self.get_in_hall(map, hall_index)
+            if i is None:
+                key_string += '.'
+            else:
+                key_string += '%s' % self.get_kind_str(map, i)
+
+        for row in [0,1,2,3]:
+            key_string += self.get_key_row(map, row)
+
+        return key_string
+
     def print_map(self, map, cost):
 
-        print("******* processed: %d abort: %d finished: %d cur cost: %d min_cost: %d" %
-              (self._total_count, self._abort_count, self._finished_count, cost, self._min_cost))
+        print("******* processed: %d abort: %d cache_hit: %d cache_size: %d finished: %d cur cost: %d min_cost: %d" %
+              (self._total_count, self._abort_count, self._cache_hit_count,
+               len(self._cache), self._finished_count, cost, self._min_cost))
 
         hall_string = ''
         for hall_index in range(0, 11):
@@ -374,7 +419,7 @@ class Runner(object):
         print(hall_string)
 
         for row in [0,1,2,3]:
-            self.print_row((map), row)
+            self.print_row(map, row)
 
 if __name__ == '__main__':
 
