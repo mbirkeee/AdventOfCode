@@ -1,8 +1,4 @@
 import sys
-import itertools
-from collections import Counter
-import numpy as np
-import re
 
 class Runner(object):
 
@@ -27,11 +23,19 @@ class Runner(object):
             if fp: fp.close()
 
         self._replacement_list = []
+        self._cache_hits = 0
+        self._max_depth = 0
+        # self._result = {}
+        self._cache = {}
         self._target = None
-        self._map = {}
+
+        self._count_a = None
 
         print("read %d lines" % len(self._lines))
         self.initialize()
+
+
+
 
     def initialize(self):
 
@@ -41,90 +45,88 @@ class Runner(object):
             print(line)
             parts = line.split('=>')
             if len(parts) == 2:
-                print("this is a replacement")
-
                 start = parts[0].strip()
                 stop = parts[1].strip()
-
                 self._replacement_list.append((start, stop))
-                if stop in self._map:
-                    raise ValueError("already have this!")
-
-                self._map[stop] = start
 
             elif len(parts) == 1:
                 print("this is the target")
                 self._target = line
-            else:
-                raise ValueError("bad input")
+                print("*"*80)
+                print(self._target)
+                print("*"*80)
+
+                self._count_a = self._target.count('a')
+
+    def matched_until(self, line1, line2):
+        l = max(len(line1), len(line2))
+
+        for i in range(l):
+            if line1[i] != line2[i]:
+                return i
+
+    def process(self, medicine, depth_count):
+
+
+        if medicine.count('a') > self._count_a:
+            print("to many a's... about branch")
+            return
+
+        depth_count += 1
+
+        if depth_count > self._max_depth:
+            self._max_depth = depth_count
+
+
+        print("depth: %d (%d) cache: %d (hits: %d) med: %s" %
+              (depth_count, self._max_depth, len(self._cache),
+               self._cache_hits, medicine))
+
+        input("continue...")
+
+        # matched_pos_max = 0
+        # matched_list = []
+
+        hits = 0
+        next_pos = 0
+
+        for item in self._replacement_list:
+            start = item[0]
+            stop = item[1]
+
+            pos = medicine[next_pos:].find(start)
+            print("check %s pos: %d" % (start, pos))
+            if pos < 0:
+                continue
+
+#                pos = pos + next_pos
+#                next_pos = pos + 1
+            # print("pos: %d %s => %s" % (pos, start, stop))
+
+            hits += 1
+
+            before = medicine[0:pos]
+            after = medicine[pos+len(start):]
+            medicine_new = before + stop + after
+
+            print("NEW: %s" % medicine_new)
+            self.process(medicine_new, depth_count)
+
+
+#        new_list = list(set(new_list))
+#        self.process(new_list, depth_count)
+
+        depth_count -= 1
 
     def run(self):
 
         print("run")
-        print(self._map)
-        replacement_count = 0
+        print(self._replacement_list)
 
-        l = []
-        replacement_list = []
-        for start, stop in self._map.items():
-            print(start, stop)
-            l.append((len(start), start, stop))
-
-        l.sort()
-        l.reverse()
-        
-        for item in l:
-            replacement_list.append((item[1], item[2]))
-
-        print(l)
-        # return
-
-
-        while True:
-
-            changed = False
-            # for old, new in self._map.items():
-            for item in replacement_list:
-                old = item[0]
-                new = item[1]
-                p = self._target.find(old)
-                if p >= 0:
-                    before = self._target[0:p]
-                    after = self._target[p+len(old):]
-                    fixed = before + new + after
-
-                    print(self._target, " ==> ", fixed)
-                    self._target = fixed
-                    replacement_count += 1
-                    changed = True
-                    # break
-
-            if not changed:
-                break
-
-            print(replacement_count)
-            print(self._target)
-            if self._target == 'e':
-                break
-
-        # for start, changes in self._map.items():
-        #
-        #     i = re.finditer(start, self._target)
-        #     for p in i:
-        #         pos = p.start()
-        #         before = self._target[0:pos]
-        #         after = self._target[pos+len(start):]
-        #
-        #         for change in changes:
-        #             new = before + change + after
-        #             self._target
-        #             # print(new)
-        #             self._result[new] = True
-      #      parts = self._target.split(start)
-      #      for change in changes:
-      #          result = change.join(parts)
-      #          print(result)
-#        print("len(result", len(self._result))
+        self.process("HF", 0)
+        self.process("OMg", 0)
+        self.process("OMg", 0)
+        return
 
 
 if __name__ == '__main__':
