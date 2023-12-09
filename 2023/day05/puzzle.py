@@ -51,14 +51,19 @@ class Map(object):
 
         # There can be duplicate boundaries
         boundaries = list(set(boundaries))
+
+        # Must be in ascending order for chuck computation
         boundaries.sort()
 
+        # Make list of all possible ranges (i.e.,
+        # chunks between all boundaries
         chunk_list = []
         for i in range(len(boundaries) - 1):
             chunk_start = boundaries[i]
             chunk_end   = boundaries[i+1]
             chunk_list.append((chunk_start, chunk_end))
 
+        # Check each chunk
         for chunk in chunk_list:
             chunk_start = chunk[0]
             chunk_end = chunk[1]
@@ -68,6 +73,8 @@ class Map(object):
                 continue
 
             matching_range = None
+
+            # Check chunk against all mapping ranges
             for r in self._ranges:
                 range_start = r[0]
                 range_end = r[0] + r[2]
@@ -76,17 +83,14 @@ class Map(object):
                     matching_range = r
                     break
 
+            # Save mapped chunks as (start, width)
+            chunk_width = chunk_end - chunk_start
+
             if matching_range:
-                diff = matching_range[1] - matching_range[0]
-                chunk_width = chunk_end - chunk_start
-                chunk_start += diff
-                mapped_range = (chunk_start, chunk_width)
-                self._result.append(mapped_range)
-            else:
-                # This chunk is not mapped but is in the seed range;
-                # save it unchanged
-                unmapped = (chunk_start, chunk_end-chunk_start)
-                self._result.append(unmapped)
+                # Apply mapping function
+                chunk_start += (matching_range[1] - matching_range[0])
+
+            self._result.append((chunk_start, chunk_width))
 
     def map_ranges(self, item_ranges):
 
@@ -204,9 +208,11 @@ class Runner(object):
 
         print("Done; got %d ranges" % len(seed_ranges))
 
-        vals = [s[0] for s in seed_ranges]
+        # First element in each range is minimum; find
+        # smallest minimum
+        range_mins = [s[0] for s in seed_ranges]
 
-        print("part 2 answer:", min(vals))
+        print("part 2 answer:", min(range_mins))
 
 if __name__ == '__main__':
 
