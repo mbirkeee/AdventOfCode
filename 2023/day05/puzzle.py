@@ -1,11 +1,5 @@
 import sys
-
-class ExceptionDone(Exception):
-    pass
-
-class ExceptionNotPossible(Exception):
-    pass
-
+import itertools
 
 class Map(object):
 
@@ -21,8 +15,6 @@ class Map(object):
     def add_range(self, item):
 
         parts = item.split(' ')
-        if len(parts) != 3:
-            raise ValueError("expected 3 parts")
 
         r = [int(part) for part in parts]
 
@@ -30,7 +22,7 @@ class Map(object):
         self._ranges.append((r[1], r[0], r[2]))
 
     def map(self, item):
-        print("map %s item %d" % (self.get_name(), item))
+
         for r in self._ranges:
             source = r[0]
             dest = r[1]
@@ -42,8 +34,6 @@ class Map(object):
         return item
 
     def map_one_range(self, item):
-
-        # print("map range item", item)
 
         boundaries = []
 
@@ -59,6 +49,7 @@ class Map(object):
             boundaries.append(r[0])
             boundaries.append(r[0] + r[2])
 
+        # There can be duplicate boundaries
         boundaries = list(set(boundaries))
         boundaries.sort()
 
@@ -89,13 +80,13 @@ class Map(object):
                 diff = matching_range[1] - matching_range[0]
                 chunk_width = chunk_end - chunk_start
                 chunk_start += diff
-                thing = (chunk_start, chunk_width)
-                self._result.append(thing)
+                mapped_range = (chunk_start, chunk_width)
+                self._result.append(mapped_range)
             else:
                 # This chunk is not mapped but is in the seed range;
                 # save it unchanged
-                thing = (chunk_start, chunk_end-chunk_start)
-                self._result.append(thing)
+                unmapped = (chunk_start, chunk_end-chunk_start)
+                self._result.append(unmapped)
 
     def map_ranges(self, item_ranges):
 
@@ -109,38 +100,36 @@ class Map(object):
         this is just a test to see if any source ranges
         overlap.  I dont think they should
         """
-        for i, r1 in enumerate(self._ranges):
-            for j, r2 in enumerate(self._ranges):
+        x = itertools.combinations(self._ranges, 2)
 
-                if i == j:
-                    continue
+        for item in x:
+            r1 = item[0]
+            r2 = item[1]
 
-                print("compare", i, j)
-                r1_start = r1[0]
-                r2_start = r2[0]
-                r1_end = r1_start + r1[2] - 1
-                r2_end = r2_start + r2[2] - 1
+            r1_start = r1[0]
+            r2_start = r2[0]
+            r1_end = r1_start + r1[2] - 1
+            r2_end = r2_start + r2[2] - 1
 
-                if r1_start >= r2_start:
-                    if r1_start <= r2_end:
-                        raise ValueError("overlap 1")
+            if r1_start >= r2_start:
+                if r1_start <= r2_end:
+                    raise ValueError("overlap 1")
 
-                if r1_end >= r2_start:
-                    if r1_end <= r2_end:
-                        raise ValueError("overlap 2")
+            if r1_end >= r2_start:
+                if r1_end <= r2_end:
+                    raise ValueError("overlap 2")
 
-                if r2_start >= r1_start:
-                    if r2_start <= r1_end:
-                        raise ValueError("overlap 3")
+            if r2_start >= r1_start:
+                if r2_start <= r1_end:
+                    raise ValueError("overlap 3")
 
-                if r2_end >= r1_start:
-                    if r2_end <= r1_end:
-                        raise ValueError("overlap 4")
+            if r2_end >= r1_start:
+                if r2_end <= r1_end:
+                    raise ValueError("overlap 4")
 
 class Runner(object):
 
     def __init__(self, filename):
-
 
         self._lines = []
         self._maps = []
@@ -151,38 +140,28 @@ class Runner(object):
             for line in fp:
                 line = line.strip()
                 line = line.strip('.')
-
                 self._lines.append(line)
 
         finally:
             if fp: fp.close()
 
-        self._program = []
         print("read %d lines" % len(self._lines))
 
         for line in self._lines:
-            # print("LINE: '%s" % line)
             if len(line) == 0:
                 continue
 
             if line.startswith('seeds:'):
                 line = line[len('seeds:'):].strip()
-                # print(line)
                 parts = line.split(' ')
-                # print(parts)
-
                 self._seeds = [int(part) for part in parts]
 
             elif line.find('map') > 0:
-                # print("this is a map definition")
-                # print(line)
 
                 map = Map(line)
                 self._maps.append(map)
             else:
-                # print("this is a range definition")
                 map.add_range(line)
-
 
     def run1(self):
 
@@ -190,7 +169,6 @@ class Runner(object):
 
         for map in self._maps:
             print("MAP: %s" % map.get_name())
-
 
         for seed in self._seeds:
             print("consider seed: %d" % seed)
@@ -224,18 +202,15 @@ class Runner(object):
         for map in self._maps:
             seed_ranges = map.map_ranges(seed_ranges)
 
-        print("We are done; got %d ranges!!" % len(seed_ranges))
-        min_val = None
-        for s in seed_ranges:
-            m = s[0]
-            if min_val is None or m < min_val:
-                min_val = m
+        print("Done; got %d ranges" % len(seed_ranges))
 
-        print("part 2 answer:", min_val)
+        vals = [s[0] for s in seed_ranges]
+
+        print("part 2 answer:", min(vals))
 
 if __name__ == '__main__':
 
     runner = Runner(sys.argv[1])
     runner.run1()
-    # runner.test_overlap()
+    runner.test_overlap()
     runner.run2()
