@@ -1,23 +1,43 @@
 import sys
-import numpy as np
+import math
 
 class ExceptionDone(Exception):
     pass
 
-ZERO    = ord('0')
-NINE    = ord('9')
-PERIOD  = ord('.')
-GEAR    = ord('*')
+
+class Card(object):
+    def __init__(self, line):
+        # print("card line: %s" % line)
+        line = line.strip()
+        parts = line.split(':')
+        name = parts[0]
+        # print("Name: %s" % name)
+
+        parts = parts[1].split('|')
+        # print(parts[0])
+
+        self._numbers_win = [int(part.strip()) for part in parts[0].split()]
+        self._numbers_have =  [int(part.strip()) for part in parts[1].split()]
+        # print("winners", self._numbers_win)
+        # print("have", self._numbers_have)
+
+    def get_match_count(self):
+
+        match_count = 0
+        for number in self._numbers_have:
+            if number in self._numbers_win:
+                match_count += 1
+
+        return match_count
 
 class Runner(object):
 
     def __init__(self, filename):
 
         lines = []
-        fp = None
+        self._cards = []
 
-        self._rows = None
-        self._cols = None
+        fp = None
 
         try:
             fp = open(filename, 'r')
@@ -29,159 +49,86 @@ class Runner(object):
 
                 lines.append(line)
 
-                if self._cols is None:
-                    self._cols = len(line)
-                else:
-                    if len(line) != self._cols:
-                        raise ValueError("bad input")
-
         finally:
             if fp: fp.close()
 
-        self._rows = len(lines)
-        print("read %d lines" % len(lines))
-        print("rows", self._rows, "cols", self._cols)
-
-        self._array = np.zeros((self._rows, self._cols), dtype=np.uint8)
-
-        for r, line in enumerate(lines):
-            # print(line)
-            for c, x in enumerate(line):
-                # print(c)
-                self._array[r,c] = ord(x)
-
-    def get_value(self, item):
-        if item >= ZERO and item <= NINE:
-            return item - ZERO
-
-    def check_for_symbol(self, r, c):
-
-        for row in [r-1, r, r+1]:
-            for col in [c-1, c, c+1]:
-                try:
-                    x = self._array[row,col]
-                except:
-                    continue
-
-                if x >= ZERO and x <= NINE:
-                    continue
-
-                if x == PERIOD:
-                    continue
-
-                print("found adjacent symbol %s (%d)" % (chr(x), x))
-                return True
-
-        return False
-
-    def check_for_gears(self, r, c, gear_keys):
-
-        for row in [r-1, r, r+1]:
-            for col in [c-1, c, c+1]:
-                try:
-                    x = self._array[row,col]
-                except:
-                    continue
-
-                if x == GEAR:
-                    gear_key = '%d-%d' % (row, col)
-                    gear_keys.append(gear_key)
-
-        return gear_keys
-
-
+        for line in lines:
+            card = Card(line)
+            self._cards.append(card)
 
     def run1(self):
+        print("run")
 
-        number_flag = False
-        symbol_flag = False
-        number = 0
-        total = 0
+        total_score = 0
 
-        for r in range(self._rows):
-            for c in range(self._cols):
-                x = self._array[r,c]
+        for card in self._cards:
+            match_count = card.get_match_count()
+            # print(match_count)
 
-                value = self.get_value(x)
-                if value is None:
-                    # print("this is NOT a digit")
+            if match_count == 0:
+                score = 0
+            elif match_count == 1:
+                score = 1
+            else:
+                score = int(math.pow(2, (match_count-1)))
 
-                    if number_flag:
-                        # print("found number", number)
-                        if symbol_flag:
-                            # this number is next to a symbol
-                            total += number
+            print("score: %s" % score)
+            total_score += score
 
-                    symbol_flag = False
-                    number_flag = False
-                    number = 0
-
-                else:
-                    # print(value)
-                    number_flag = True
-                    number *= 10
-                    number += value
-                    if self.check_for_symbol(r, c):
-                        symbol_flag = True
-
-        if number_flag:
-            raise ValueError("found number and end of input")
-
-        print("part 1 total", total)
+        print("part 1: total score: %d" % total_score)
 
     def run2(self):
 
-        number_flag = False
-        gear_flag = False
-        gear_keys = []
+        map_win_count = {}
+        map_have = {}
+        kind_count = 0
 
-        gear_map = {}
+        processed_count = 0
 
-        number = 0
-        total = 0
+        # Initialize the maps
+        for i, card in enumerate(self._cards):
+            match_count = card.get_match_count()
+            map_win_count[i]= match_count
+            map_have[i] = 1
+            kind_count += 1
 
-        for r in range(self._rows):
-            for c in range(self._cols):
-                x = self._array[r,c]
+        max_kind = i
+        run_flag = True
 
-                value = self.get_value(x)
-                if value is None:
-                    # print("this is NOT a digit")
+        # Run until done
+        while True:
 
-                    if number_flag:
-                        # print("found number", number)
-                        # There can be duplicate keys
-                        gear_keys = list(set(gear_keys))
-                        for gear_key in gear_keys:
-                            # this number is next to a gear
-                            print("number %d is next to gear %s" % (number, gear_key))
-                            number_list = gear_map.get(gear_key, [])
-                            number_list.append(number)
-                            gear_map[gear_key] = number_list
-                            # total += number
+            match_flag = False
+            for i in range(kind_count):
+                have = map_have[i]
+                if have == 0:
+                    continue
 
-                    gear_keys = []
-                    number_flag = False
-                    number = 0
+                processed_count += 1
+                match_flag = True
+                match_count = map_win_count[i]
+                print("have a card of type %d; it matches %d" % (i, match_count))
 
-                else:
-                    # print(value)
-                    number_flag = True
-                    number *= 10
-                    number += value
-                    gear_keys = self.check_for_gears(r, c, gear_keys)
+                # Remove processed card from those we have
+                map_have[i] = map_have[i] - 1
 
-        if number_flag:
-            raise ValueError("found number and end of input")
+                # Add cards that we won
+                for j in range(match_count):
+                    add_kind = i + j + 1
+                    if add_kind > max_kind:
+                        break
 
-        for gear_key, number_list in gear_map.items():
-            print(gear_key, number_list)
-            if len(number_list) != 2:
-                continue
+                    print("add card of type %d" % add_kind)
+                    map_have[add_kind] = map_have[add_kind] + 1
 
-            total += number_list[0] * number_list[1]
+                if match_flag:
+                    break
 
-        print("part 2 total", total)
+            if not match_flag:
+                break
+
+        print("part 2 done; processed:", processed_count)
+
 
 if __name__ == '__main__':
 
